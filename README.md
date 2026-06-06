@@ -10,6 +10,7 @@ No frameworks, no dependencies — just clean code.
 | Project | Description | Tech | Demo |
 |---|---|---|---|
 | [Space Animation](./javascript/space_animation/) | Warp speed stars, meteors, nebulae and particle constellations | HTML/JS Canvas | [Live ▶](https://otokariev.github.io/tiktok-projects/javascript/space_animation/space_animation.html) |
+| [Matrix](./python/matrix/) | Classic Matrix-style falling characters in the terminal | Python/curses | [GIF ▶](./python/matrix/matrix.gif) |
 
 ---
 
