@@ -9,7 +9,7 @@ No frameworks, no dependencies — just clean code.
 
 | Project | Description | Tech |
 |---|---|---|
-| [Space Animation](./space_animation/) | Warp speed stars, meteors, nebulae and particle constellations | HTML/JS Canvas |
+| [Space Animation](./javascript/space_animation/) | Warp speed stars, meteors, nebulae and particle constellations | HTML/JS Canvas |
 
 ---
 
