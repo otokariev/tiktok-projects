@@ -7,9 +7,9 @@ No frameworks, no dependencies — just clean code.
 
 ## 📁 Projects
 
-| Project | Description | Tech |
-|---|---|---|
-| [Space Animation](./javascript/space_animation/) | Warp speed stars, meteors, nebulae and particle constellations | HTML/JS Canvas |
+| Project | Description | Tech | Demo |
+|---|---|---|---|
+| [Space Animation](./javascript/space_animation/) | Warp speed stars, meteors, nebulae and particle constellations | HTML/JS Canvas | [Live ▶](https://otokariev.github.io/tiktok-projects/javascript/space_animation/space_animation.html) |
 
 ---
 
