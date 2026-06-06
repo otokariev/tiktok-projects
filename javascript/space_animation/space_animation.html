@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Space Animation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; height: 100vh; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width = window.innerWidth;
+const H = canvas.height = window.innerHeight;
+
+const hues = [200, 220, 260, 180, 300, 340, 140];
+
+const stars = Array.from({length: 400}, () => ({
+  x: (Math.random() - 0.5) * W,
+  y: (Math.random() - 0.5) * H,
+  z: Math.random() * W, pz: 0
+}));
+
+const particles = Array.from({length: 160}, () => ({
+  x: Math.random() * W, y: Math.random() * H,
+  vx: (Math.random() - 0.5) * 0.6,
+  vy: (Math.random() - 0.5) * 0.6,
+  hue: hues[Math.floor(Math.random() * hues.length)],
+  size: Math.random() * 3 + 1
+}));
+
+const meteors = Array.from({length: 10}, () => spawnMeteor());
+
+function spawnMeteor() {
+  return {
+    x: Math.random() * W, y: Math.random() * H * 0.4,
+    vx: 5 + Math.random() * 8, vy: 2 + Math.random() * 5,
+    len: 100 + Math.random() * 150,
+    hue: hues[Math.floor(Math.random() * hues.length)],
+    life: 0, maxLife: 50 + Math.random() * 70
+  };
+}
+
+const nebulae = Array.from({length: 7}, (_, i) => ({
+  x: Math.random() * W, y: Math.random() * H,
+  r: 150 + Math.random() * 200,
+  h: hues[i % hues.length],
+  phase: Math.random() * Math.PI * 2
+}));
+
+const orbs = Array.from({length: 12}, () => ({
+  x: Math.random() * W, y: Math.random() * H,
+  r: 1.5 + Math.random() * 4,
+  hue: hues[Math.floor(Math.random() * hues.length)],
+  pulsePhase: Math.random() * Math.PI * 2,
+  vx: (Math.random() - 0.5) * 0.3,
+  vy: (Math.random() - 0.5) * 0.3
+}));
+
+const trails = Array.from({length: 5}, () => ({
+  x: Math.random() * W, y: Math.random() * H,
+  vx: (Math.random() - 0.5) * 1.5,
+  vy: (Math.random() - 0.5) * 1.5,
+  hue: hues[Math.floor(Math.random() * hues.length)],
+  history: [], maxHistory: 40
+}));
+
+const explosions = [];
+let warpSpeed = 6, frame = 0;
+
+function drawStars() {
+  const cx = W/2, cy = H/2;
+  stars.forEach(s => {
+    s.pz = s.z; s.z -= warpSpeed;
+    if (s.z <= 0) { s.x=(Math.random()-0.5)*W; s.y=(Math.random()-0.5)*H; s.z=W; s.pz=s.z; }
+    const sx=(s.x/s.z)*W+cx, sy=(s.y/s.z)*H+cy;
+    const px=(s.x/s.pz)*W+cx, py=(s.y/s.pz)*H+cy;
+    const size=Math.max(0.3,(1-s.z/W)*3.5);
+    const alpha=Math.min(1,(1-s.z/W)*1.5);
+    const g=ctx.createLinearGradient(px,py,sx,sy);
+    g.addColorStop(0,'rgba(255,255,255,0)');
+    g.addColorStop(1,`rgba(255,255,255,${alpha})`);
+    ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(sx,sy);
+    ctx.strokeStyle=g; ctx.lineWidth=size; ctx.stroke();
+    ctx.beginPath(); ctx.arc(sx,sy,size*0.8,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${alpha})`; ctx.fill();
+  });
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+  });
+  for(let i=0;i<particles.length;i++) {
+    for(let j=i+1;j<particles.length;j++) {
+      const a=particles[i],b=particles[j];
+      const dx=a.x-b.x,dy=a.y-b.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<100) {
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+        ctx.strokeStyle=`hsla(${(a.hue+b.hue)/2},90%,70%,${(1-dist/100)*0.3})`;
+        ctx.lineWidth=0.8; ctx.stroke();
+      }
+    }
+  }
+  particles.forEach(p => {
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${p.hue},90%,75%,0.9)`; ctx.fill();
+  });
+}
+
+function drawMeteors() {
+  meteors.forEach((m,i) => {
+    m.x+=m.vx; m.y+=m.vy; m.life++;
+    const progress=m.life/m.maxLife;
+    const alpha=progress<0.2?progress/0.2:1-(progress-0.2)/0.8;
+    const angle=Math.atan2(m.vy,m.vx);
+    const tx=m.x-Math.cos(angle)*m.len, ty=m.y-Math.sin(angle)*m.len;
+    const g=ctx.createLinearGradient(tx,ty,m.x,m.y);
+    g.addColorStop(0,'rgba(255,255,255,0)');
+    g.addColorStop(0.7,`hsla(${m.hue},90%,80%,${alpha*0.5})`);
+    g.addColorStop(1,`hsla(${m.hue},100%,95%,${alpha})`);
+    ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(m.x,m.y);
+    ctx.strokeStyle=g; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.beginPath(); ctx.arc(m.x,m.y,3,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${m.hue},100%,95%,${alpha})`; ctx.fill();
+    if(m.life>=m.maxLife||m.x>W+200||m.y>H+200) {
+      if(Math.random()<0.5) explosions.push({x:m.x,y:m.y,r:0,maxR:50+Math.random()*50,alpha:1,hue:m.hue});
+      meteors[i]=spawnMeteor();
+    }
+  });
+}
+
+function drawExplosions() {
+  for(let i=explosions.length-1;i>=0;i--) {
+    const e=explosions[i];
+    e.r+=3; e.alpha-=0.035;
+    if(e.alpha<=0){explosions.splice(i,1);continue;}
+    for(let r=0;r<12;r++) {
+      const angle=(r/12)*Math.PI*2;
+      const len=e.r*(0.4+Math.random()*0.6);
+      ctx.beginPath(); ctx.moveTo(e.x,e.y);
+      ctx.lineTo(e.x+Math.cos(angle)*len,e.y+Math.sin(angle)*len);
+      ctx.strokeStyle=`hsla(${e.hue},90%,80%,${e.alpha*0.6})`;
+      ctx.lineWidth=1.5; ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(e.x,e.y,e.r*0.25,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${e.hue},100%,90%,${e.alpha*0.4})`; ctx.fill();
+  }
+}
+
+function drawNebulae() {
+  const t=frame*0.005;
+  nebulae.forEach((n,i) => {
+    const pulse=1+Math.sin(t+n.phase)*0.2;
+    const g=ctx.createRadialGradient(n.x+Math.sin(t+i)*30,n.y+Math.cos(t*0.7+i)*25,0,n.x,n.y,n.r*pulse);
+    g.addColorStop(0,`hsla(${n.h},70%,40%,0.07)`);
+    g.addColorStop(0.5,`hsla(${n.h},60%,30%,0.03)`);
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  });
+}
+
+function drawOrbs() {
+  const t=frame*0.04;
+  orbs.forEach(o => {
+    o.x+=o.vx; o.y+=o.vy;
+    if(o.x<0)o.x=W; if(o.x>W)o.x=0;
+    if(o.y<0)o.y=H; if(o.y>H)o.y=0;
+    const pulse=1+Math.sin(t+o.pulsePhase)*0.5;
+    const r=o.r*pulse;
+    ctx.beginPath(); ctx.arc(o.x,o.y,r*3,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${o.hue},90%,70%,0.06)`; ctx.fill();
+    ctx.beginPath(); ctx.arc(o.x,o.y,r,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${o.hue},100%,85%,0.9)`; ctx.fill();
+  });
+}
+
+function drawTrails() {
+  trails.forEach(t => {
+    t.history.push({x:t.x,y:t.y});
+    if(t.history.length>t.maxHistory) t.history.shift();
+    t.x+=t.vx; t.y+=t.vy;
+    t.vx+=(Math.random()-0.5)*0.1;
+    t.vy+=(Math.random()-0.5)*0.1;
+    t.vx=Math.max(-2,Math.min(2,t.vx));
+    t.vy=Math.max(-2,Math.min(2,t.vy));
+    if(t.x<0)t.x=W; if(t.x>W)t.x=0;
+    if(t.y<0)t.y=H; if(t.y>H)t.y=0;
+    for(let i=1;i<t.history.length;i++) {
+      const alpha=(i/t.history.length)*0.6;
+      ctx.beginPath();
+      ctx.moveTo(t.history[i-1].x,t.history[i-1].y);
+      ctx.lineTo(t.history[i].x,t.history[i].y);
+      ctx.strokeStyle=`hsla(${t.hue},90%,70%,${alpha})`;
+      ctx.lineWidth=(i/t.history.length)*2;
+      ctx.stroke();
+    }
+  });
+}
+
+function loop() {
+  frame++;
+  warpSpeed=4+Math.sin(frame*0.01)*2.5;
+  ctx.fillStyle='rgba(0,0,0,0.16)';
+  ctx.fillRect(0,0,W,H);
+  drawNebulae();
+  drawTrails();
+  drawStars();
+  drawParticles();
+  drawOrbs();
+  drawMeteors();
+  drawExplosions();
+  requestAnimationFrame(loop);
+}
+
+ctx.fillStyle='#000';
+ctx.fillRect(0,0,W,H);
+loop();
+</script>
+</body>
+</html>
